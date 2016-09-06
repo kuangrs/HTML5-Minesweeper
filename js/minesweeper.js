@@ -525,8 +525,9 @@ $(function(){
     generateMines: function(){
 
       // For every square
+      //初始化二维数组globals.mineMap[X][Y] 值为0或-1，难度越大，地雷(值为-1)的个数越多
       for(var i = 0; i < globals.squaresX; i++){
-        globals.mineMap[i] = new Array(globals.squaresX);
+        globals.mineMap[i] = new Array(globals.squaresY);
 
         // The lower the dificulty, the more mines
         for(var j = 0; j < globals.squaresY; j++){
