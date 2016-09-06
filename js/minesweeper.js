@@ -19,25 +19,31 @@ $(function(){
     restart: '',
     mineMap: '',
     flagMap: '',
-    revealedMap: '',
+    revealedMap: [],
     currentAnimation: '',
     previous: new Array(2),
+    previousFlag:[],
     squaresX: '',
     squaresY: ''
   },
 
   defaults = {
     difficulty: 0,
-    celSize: 20,
-    width: 400,
-    height: 400,
-    background: 'white',
+    celSize: 30,
+    width: 600,
+    height: 600,
+    background: '#eee',
     font: '14px Arial',
     celColor: '#dadada',
     celStroke: 'white',
-    celRadius: 5,
+    celRadius: 1,
     mineImg: 'images/mine.png',
     flagImg: 'images/flag.png'
+  },
+
+  shift = {
+    x: 2+Math.floor((defaults.celSize-Number(defaults.font.split('px')[0]))/2),
+    y: -2+Math.floor((defaults.celSize+Number(defaults.font.split('px')[0]))/2)
   },
 
   containers = {
@@ -349,11 +355,13 @@ $(function(){
         var pX = globals.previous[0],
         pY = globals.previous[1];
 
+        //上一个位置绘制成初始样式
         if(typeof pX !== 'undefined' && globals.revealedMap[pX][pY] !== 1 && globals.flagMap[pX][pY] !== 1){
           globals.context.fillStyle = defaults.celColor;
           util.roundRect(globals.previous[0], globals.previous[1]);
         }
 
+        //绘制当前位置
         if(l < 0 && f < 0 && !globals.firstClick){
 
           globals.context.fillStyle = '#aaa';
@@ -383,12 +391,14 @@ $(function(){
           // Add revealed square to the revealed array
           globals.revealedMap[x][y] = 1;
 
+          //掀开格子并标上数字
           if(globals.mineMap[x][y] !== -1){
             // 'remove square', by drawing a white one over it
             var alpha = 0.1,
             squareFade = setInterval(function(){
               globals.context.strokeStyle = 'white';
-              globals.context.fillStyle = 'rgba(255,255,255,' + alpha + ')';
+              // globals.context.fillStyle = 'rgba(255,255,255,' + alpha + ')';
+              globals.context.fillStyle = 'rgba(240,240,240,' + alpha + ')';
               util.roundRect(x, y);
 
               if(globals.mineMap[x][y] !== -1){
@@ -396,7 +406,7 @@ $(function(){
                 // Default colors for the index numbers in an array. [0] not having a color.
                 var colorMap = ['none', 'blue', 'green', 'red',  'black', 'orange', 'cyan'];
                 globals.context.fillStyle = colorMap[globals.mineMap[x][y]];
-                globals.context.fillText(globals.mineMap[x][y], (x * defaults.celSize) + 5, (y * defaults.celSize) + 16);
+                globals.context.fillText(globals.mineMap[x][y], (x * defaults.celSize) + shift.x, (y * defaults.celSize) + shift.y);
               }
 
               alpha = alpha + .1;
@@ -417,6 +427,7 @@ $(function(){
             };
           }
 
+          //检查周围没有地雷的格子八个方向的格子，若某个格子周围有地雷，不再扩散检查
           if(globals.mineMap[x][y] === 0){
 
             // remove all neighbors till squares are found that do have surrounding mines
@@ -448,23 +459,16 @@ $(function(){
 
         // Draw flag
         globals.context.drawImage(flag, x * defaults.celSize, y * defaults.celSize, defaults.celSize, defaults.celSize);
+
         globals.flagMap[x][y] = 1;
         globals.totalFlags++;
 
       }else{
-
         // Remove flag image
-        var img = globals.context.createImageData(defaults.celSize, defaults.celSize);
-        for(var i = img.data.length; --i >= 0;){
-          img.data[i] = 0;
-        }
-
-        globals.context.putImageData(img, x * defaults.celSize, y * defaults.celSize);
 
         // Make sure proper styles are set
         globals.context.strokeStyle = defaults.celStroke;
         globals.context.fillStyle = defaults.celColor;
-
         util.roundRect(x, y);
 
         globals.flagMap[x][y] = 0;
