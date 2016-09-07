@@ -230,6 +230,13 @@ $(function(){
         globals.revealedMap[k] = Array(globals.squaresY);
       }
 
+      for (var i = 0; i < globals.squaresX; i++) {
+        for (var j = 0; j < globals.squaresY; j++) {
+          globals.flagMap[i][j] = 0;
+          globals.revealedMap[i][j] = 0;
+        }
+      }
+
       scores.display();
 
       // Make sure proper styles are set
@@ -301,6 +308,8 @@ $(function(){
           do{
             action.generateMines(globals.mineMap);
           }while(globals.mineMap[x][y] === -1);
+
+          document.cookie = 'mineMap=' + JSON.stringify(globals.mineMap);
 
           // Set number of mines
           containers.mines.html('You have to find ' + globals.totalMines + ' mines to win.');
@@ -428,7 +437,7 @@ $(function(){
                 window.clearInterval(squareFade);
               }
             }, 50);
-            action.addCookies();
+            action.setCookies();
 
             // If the square that was clicked has no surrounding mines...
           }else{
@@ -637,7 +646,7 @@ $(function(){
     },
 
     // 写cookie
-    addCookies: function() {
+    setCookies: function() {
 
       if(globals.revealedMap.length && globals.revealedMap[0].length) {
         document.cookie = 'revealedMap=' + JSON.stringify(globals.revealedMap) + ';path=/';
@@ -650,9 +659,21 @@ $(function(){
         return;
       }
 
-      if(document.cookie.split(';')[0].split('=')[0] == 'revealedMap') {
-        globals.tempRevealedMap = JSON.parse(document.cookie.split(';')[0].split('=')[1]);
-      }
+      $.each(document.cookie.split(';'), function(i,v) {
+        var value = v.split('=');
+        switch (value[0]) {
+          case 'mineMap':
+            globals.mineMap = JSON.parse(value[1]);
+            globals.firstClick = false;
+            globals.recoverFlag = true;
+            break;
+          case 'revealedMap':
+            globals.tempRevealedMap = JSON.parse(value[1]);
+            break;
+          default:
+
+        }
+      })
     }
 
   };
