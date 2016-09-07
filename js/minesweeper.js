@@ -1,5 +1,11 @@
 /*global $: true, console: true */
+/*
+1.读cookies
+2.根据地雷分布求mineMap
+3.读取掀开的格子再次掀开
+4.读取打标记的格子再次标记
 
+*/
 $(function(){
   "use strict";
 
@@ -28,7 +34,7 @@ $(function(){
   },
 
   defaults = {
-    difficulty: 0,
+    difficulty: 9,
     celSize: 30,
     width: 600,
     height: 600,
@@ -38,7 +44,8 @@ $(function(){
     celStroke: 'white',
     celRadius: 1,
     mineImg: 'images/mine.png',
-    flagImg: 'images/flag.png'
+    flagImg: 'images/flag.png'，
+    recoverFlag: false
   },
 
   shift = {
@@ -176,6 +183,8 @@ $(function(){
 
     reset: function(){
 
+      //清cookie 以及recoverFlag标识
+
       // Clear the timer
       window.clearInterval(globals.clock);
       window.clearInterval(globals.restart);
@@ -228,6 +237,10 @@ $(function(){
       globals.context.fillStyle = defaults.celColor;
 
       animation.standardBoard();
+
+      //读取cookie
+      action.getCookies();
+
     },
 
     /* ------------------------------------------- */
@@ -415,6 +428,7 @@ $(function(){
                 window.clearInterval(squareFade);
               }
             }, 50);
+            action.addCookies();
 
             // If the square that was clicked has no surrounding mines...
           }else{
@@ -536,6 +550,7 @@ $(function(){
           if(globals.mineMap[i][j] > 0){
             globals.mineMap[i][j] = 0;
           }
+
         }
       }
 
@@ -581,6 +596,7 @@ $(function(){
 
             for(var a = 0; a < 3; a++){
               for(var b = 0; b < 3; b++){
+                //周围有地雷，计数加1
                 if(util.is('mine', xArr[a], yArr[b])){
                   globals.mineMap[xArr[a]][yArr[b]]++;
                 }
@@ -618,7 +634,27 @@ $(function(){
 
       // Stops the timer and counts down to a reset of the game
       window.clearInterval(globals.clock);
+    },
+
+    // 写cookie
+    addCookies: function() {
+
+      if(globals.revealedMap.length && globals.revealedMap[0].length) {
+        document.cookie = 'revealedMap=' + JSON.stringify(globals.revealedMap) + ';path=/';
+      }
+    },
+
+    // 读cookie
+    getCookies: function() {
+      if(document.cookie == '') {
+        return;
+      }
+
+      if(document.cookie.split(';')[0].split('=')[0] == 'revealedMap') {
+        globals.tempRevealedMap = JSON.parse(document.cookie.split(';')[0].split('=')[1]);
+      }
     }
+
   };
 
   /* =========================================== */
@@ -688,6 +724,10 @@ $(function(){
     },
 
     walker: function(){
+
+      if(defaults.recoverFlag) {
+        return;
+      }
       // Make sure proper styles are set
       globals.context.strokeStyle = defaults.celStroke;
 
@@ -888,4 +928,8 @@ $(function(){
   /* =========================================== */
 
   core.init();
+
+  window.globals = globals;
+  window.defaults = defaults;
+  window.util = util;
 });
