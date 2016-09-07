@@ -674,6 +674,11 @@ $(function(){
 
         }
       })
+
+      //写入图形
+      for (var i = 0; i < tempRevealedMap.length; i++) {
+        array[i]
+      }
     }
 
   };
