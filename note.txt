@@ -1,0 +1,19 @@
+1、分页功能
+2、日期选择组件
+3、移动端音乐添加
+
+
+reset
+  clear
+  setup
+    初始化revealedMap
+    display分数
+    渲染所有格子
+  walker
+
+
+1.读cookies
+2.根据地雷分布求mineMap
+
+3.读取掀开的格子再次掀开
+4.读取打标记的格子再次标记
