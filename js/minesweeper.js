@@ -20,6 +20,8 @@ $(function(){
     mineMap: '',
     flagMap: '',
     revealedMap: [],
+    tempRevealedMap: [],
+    tempFlagMap: [],
     currentAnimation: '',
     previous: new Array(2),
     previousFlag:[],
@@ -28,7 +30,7 @@ $(function(){
   },
 
   defaults = {
-    difficulty: 0,
+    difficulty: 9,
     celSize: 30,
     width: 600,
     height: 600,
@@ -49,6 +51,9 @@ $(function(){
   containers = {
     // In core.init(), we add containers.
   };
+
+  window.globals = globals;
+  window.defaults = defaults;
 
   /* =========================================== */
   // --- Core Functions ---
@@ -151,6 +156,8 @@ $(function(){
       // Initialize the board
       core.setup();
 
+      action.getCookie();
+
       //animation.arrow();
 
     },
@@ -200,6 +207,9 @@ $(function(){
       containers.time.html('0');
       containers.msg.html('Click on a square to start the game!');
 
+      action.removeCookie('flags', 'flagMap', 'mines', 'mineMap', 'revealedMap', 'seconds', 'gameover');
+      localStorage.clear();
+
       // Initialize the board
       core.setup();
 
@@ -219,6 +229,17 @@ $(function(){
       for(var k = 0; k < globals.squaresX; k++){
         globals.flagMap[k] = Array(globals.squaresY);
         globals.revealedMap[k] = Array(globals.squaresY);
+        globals.tempRevealedMap[k] = Array(globals.squaresY);
+        globals.tempFlagMap[k] = Array(globals.squaresY);
+      }
+
+      for (var i = 0; i < globals.squaresX; i++) {
+        for (var j = 0; j < globals.squaresY; j++) {
+          globals.flagMap[i][j] = 0;
+          globals.revealedMap[i][j] = 0;
+          globals.tempRevealedMap[i][j] = 0;
+          globals.tempFlagMap[i][j] = 0;
+        }
       }
 
       scores.display();
@@ -242,6 +263,8 @@ $(function(){
         globals.elapsedTime++;
         // Append time to #time
         containers.time.html(globals.elapsedTime);
+        var date = new Date(new Date().getTime() + 30*24*60*60*1000);
+        document.cookie = 'seconds=' + globals.elapsedTime + ';expires=' + date.toGMTString();
       }, 1000);
     }
   };
@@ -266,6 +289,11 @@ $(function(){
         return false;
       }
 
+      if(globals.recoverFlag) {
+        core.timer();
+        globals.recoverFlag = false;
+      }
+
       // Calculate x & y relevant to the cel size, also (l) check if current x,y combo has already been revealed
       var x = Math.floor((e.pageX - globals.canvas[0].offsetLeft - 1) / defaults.celSize),
       y = Math.floor((e.pageY - globals.canvas[0].offsetTop - 1) / defaults.celSize),
@@ -288,6 +316,11 @@ $(function(){
           do{
             action.generateMines(globals.mineMap);
           }while(globals.mineMap[x][y] === -1);
+
+          action.setCookie({
+            'mineMap': JSON.stringify(globals.mineMap),
+            'mines': globals.totalMines
+          });
 
           // Set number of mines
           containers.mines.html('You have to find ' + globals.totalMines + ' mines to win.');
@@ -416,6 +449,8 @@ $(function(){
               }
             }, 50);
 
+            action.setCookie('revealedMap', JSON.stringify(globals.revealedMap));
+
             // If the square that was clicked has no surrounding mines...
           }else{
 
@@ -454,6 +489,7 @@ $(function(){
 
     flag: function(flag, x, y){
 
+      console.log(x, y);
       // If square is not already flagged
       if(globals.flagMap[x][y] !== 1){
 
@@ -475,6 +511,11 @@ $(function(){
         globals.totalFlags--;
       }
 
+      action.setCookie({
+        'flagMap': JSON.stringify(globals.flagMap),
+        'flags': globals.totalFlags
+      });
+
       // Adjust counters accordingly
       containers.mines.html('You have to find ' + (globals.totalMines - globals.totalFlags) + ' mines to win.');
       containers.flags.html('You have set ' + globals.totalFlags + ' flags.');
@@ -483,6 +524,29 @@ $(function(){
       action.won();
     },
 
+    flagMock: function(flag, x, y){
+
+      console.log(x, y);
+      // If square is not already flagged
+      if(globals.flagMap[x][y] !== 1){
+
+        // Draw flag
+        globals.context.drawImage(flag, x * defaults.celSize, y * defaults.celSize, defaults.celSize, defaults.celSize);
+
+        globals.flagMap[x][y] = 1;
+        //globals.totalFlags++;
+
+      }
+
+      // Adjust counters accordingly
+      containers.mines.html('You have to find ' + (globals.totalMines - globals.totalFlags) + ' mines to win.');
+      containers.flags.html('You have set ' + globals.totalFlags + ' flags.');
+
+      // With every flag (or unflag) check if the game has been won
+      action.won();
+    },
+
+
     /* ------------------------------------------- */
     // -- Won function
     // -- Used to determine if the game has been won
@@ -490,7 +554,9 @@ $(function(){
     /* ------------------------------------------- */
 
     won: function(){
-
+      if(globals.recoverFlag) {
+        return;
+      }
       // Setup counter
       var count = 0;
 
@@ -613,11 +679,124 @@ $(function(){
 
       // Set game over status
       globals.gameover = true;
+      action.setCookie('gameover', Number(globals.gameover));
+
       containers.status.html('Game over :(');
       containers.msg.html('Click the reset button to start a new game');
 
       // Stops the timer and counts down to a reset of the game
       window.clearInterval(globals.clock);
+    },
+
+    setCookie: function() {
+
+      var date = new Date(new Date().getTime() + 30*24*60*60*1000);
+      var innerObj = {};
+      if(arguments.length == 2) {
+        innerObj[arguments[0]] = arguments[1];
+      }
+
+      if(typeof arguments[0] === 'object') {
+        innerObj = arguments[0];
+      }
+
+      var cookieStr = '';
+      for (var key in innerObj) {
+        if (innerObj.hasOwnProperty(key)) {
+          cookieStr += key + '=' + innerObj[key] + ';';
+        }
+      }
+
+      cookieStr += 'expires=' + date.toGMTString();
+      document.cookie = cookieStr;
+      //
+      // document.cookie = key + '=' + value + ';expires=' + date.toGMTString();
+      // var map = what + 'Map';
+      // if(globals[map].length && globals[map][0].length) {
+      //   document.cookie = map + '=' + JSON.stringify(globals[map])
+      // }
+      // if(what == 'revealed') {
+      //   return;
+      // }
+      //
+      // document.cookie = 'mines=' + globals.totalMines + ';expires=' + date.toGMTString();
+      // document.cookie = 'flags=' + globals.totalFlags + ';expires=' + date.toGMTString();
+      // document.cookie = 'gameover=' + globals.gameover + ';expires=' + date.toGMTString();
+    },
+
+    getCookie: function() {
+      if(document.cookie == '') {
+        return;
+      }
+
+      $.each(document.cookie.split(';'), function(i,v) {
+        var key = $.trim(v.split('=')[0]);
+        var value = v.split('=')[1];
+        if(value == '') {
+          return;
+        }
+        switch (key) {
+          case 'mineMap':
+            globals.mineMap = JSON.parse(value);
+            globals.firstClick = false;
+            globals.recoverFlag = true;
+            util.switchScreensOnly();
+            break;
+          case 'revealedMap':
+            globals.tempRevealedMap = JSON.parse(value);
+            break;
+          case 'flagMap':
+            globals.tempFlagMap = JSON.parse(value);
+            break;
+          case 'mines':
+            globals.totalMines = Number(value);
+            break;
+          case 'flags':
+            globals.totalFlags = Number(value);
+            break;
+          case 'seconds':
+            globals.elapsedTime = Number(value);
+            containers.time.html(globals.elapsedTime);
+            break;
+          case 'gameover':
+            globals.gameover = Boolean(Number(value));
+            if(globals.gameover) {
+              var mine = new Image();
+              mine.src = defaults.mineImg;
+              mine.onload = function() {
+                action.revealMines(mine);
+              };
+            }
+            break;
+        }
+      });
+
+      //recovery revealedMap and flagMap
+      for (var x = 0; x < globals.squaresX; x++) {
+        for (var y = 0; y < globals.squaresY; y++) {
+          // console.log(x,y);
+          if(globals.tempRevealedMap[x][y] == 1) {
+            action.index(x, y);
+          }
+
+          if(globals.tempFlagMap[x][y] == 1){
+            var flag = new Image();
+            flag.src = defaults.flagImg;
+            flag.onload = (function(x, y) {
+              return function() {
+                action.flagMock(flag,x,y);
+              }
+            })(x, y);
+          }
+        }
+      }
+    },
+
+    removeCookie: function() {
+      var date = new Date(new Date().getTime() - 24*60*60*1000);
+      for (var i = 0; i < arguments.length; i++) {
+        document.cookie = arguments[i] + '=;expires=' + date.toGMTString();;
+      }
     }
   };
 
@@ -688,6 +867,11 @@ $(function(){
     },
 
     walker: function(){
+
+      if(defaults.recoverFlag) {
+        return;
+      }
+
       // Make sure proper styles are set
       globals.context.strokeStyle = defaults.celStroke;
 
@@ -868,6 +1052,19 @@ $(function(){
       }
     },
 
+    switchScreensOnly: function(){
+      if($('.startscreen').is(':hidden') === false){
+        $('.startscreen').fadeToggle(400, 'swing', function(){
+          $('.gamescreen').fadeToggle();
+        });
+      }else{
+        $('.gamescreen').fadeToggle(400, 'swing', function(){
+          defaults.difficulty = 0;
+          $('.startscreen').fadeToggle();
+        });
+      }
+    },
+
     is: function(what, x, y){
       var p = {
         'revealed': globals.revealedMap,
@@ -875,7 +1072,22 @@ $(function(){
         'flag': globals.flagMap
       };
 
-      if(typeof p[what][x] !== 'undefined' && typeof p[what][x][y] !== 'undefined' && p[what][x][y] > -1){
+      var isFlag = false;
+      switch (what) {
+        case 'mine':
+          if(typeof p[what][x] !== 'undefined' && typeof p[what][x][y] !== 'undefined' && p[what][x][y] > -1) {
+            isFlag = true;
+          }
+          break;
+        case 'revealed':
+        case 'flag':
+          if(typeof p[what][x] !== 'undefined' && typeof p[what][x][y] !== 'undefined' && p[what][x][y] > 0) {
+            isFlag = true;
+          }
+          break;
+      }
+
+      if(isFlag){
         return true;
       }else{
         return false;
