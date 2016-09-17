@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge;chrome=1">
+  <title>minesweeper</title>
+  <style media="screen">
+    #minesweeper {
+      border: 1px solid #000;
+      border-collapse: collapse;
+    }
+
+    #minesweeper tr {
+      border: 1px solid #000;
+    }
+
+    #minesweeper tr td {
+      width: 30px;
+      height: 30px;
+      border: 1px solid #000;
+    }
+  </style>
+</head>
+<body>
+  <div>
+    <!-- <input type="text" id="rows">
+    <input type="text" id="cols"> -->
+    <input type="text" id="bombs">
+    <div id="status"></div>
+    <table id="minesweeper"></table>
+    <div id="display"></div>
+  </div>
+  <script src="jquery-1.11.3.js" charset="utf-8"></script>
+  <script src="index.js" charset="utf-8"></script>
+</body>
+</html>
